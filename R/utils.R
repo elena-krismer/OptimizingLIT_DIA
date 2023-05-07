@@ -61,4 +61,26 @@ Highlighted ", sum(x_filter_highlight$filtered) , " peptide(s) found in less tha
 
 }
 
+filter_protein_group <- function(x) {
+  x$FG.Quantity[as.logical(x$EG.IsImputed)] <- NA
+  x_clean_with_mean <- x %>%
+    group_by(R.FileName, PG.ProteinGroups) %>%
+    summarise(mean_quantity = mean(FG.Quantity, na.rm = TRUE)) %>%
+    pivot_wider(names_from = R.FileName,
+                values_from = mean_quantity) %>%
+    suppressMessages()
+  x_filter_highlight <- x_clean_with_mean %>%
+    mutate(na_nbr = rowSums(is.na(x_clean_with_mean[-1]))) %>%
+    mutate(mean_quantity =
+             rowMeans(x_clean_with_mean[2:ncol(x_clean_with_mean)],
+                      na.rm = TRUE)) %>%
+    mutate(filtered = !na_nbr <= 1) %>%
+    select(-na_nbr) %>%
+    suppressMessages("`summarise()` has grouped output by 'R.FileName'. You can override using the `.groups` argument.")
+  message("
+Highlighted ", sum(x_filter_highlight$filtered) , " peptide(s) found in less than ", ncol(x_clean_with_mean) -1, " replicates")
+  return(x_filter_highlight)
+
+}
+
 

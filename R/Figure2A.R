@@ -84,12 +84,5 @@ figure_2a <- df_plot %>%
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 11),
         legend.key.size = unit(0.8, "cm"),
-        legend.position = "top")+
-  geom_errorbar(aes(ymin = mean - sd,
-                    ymax = mean + sd),
-                width = 0.2,
-                size = 1) +
-  geom_errorbar(aes(ymin = mean_cv - sd_cv,
-                    ymax = mean_cv + sd_cv),
-                width = 0.2,
-                size = 1)
+        legend.position = "top") +
+  scale_fill_manual(values = c("#e6feff", "#005358"))
