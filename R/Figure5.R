@@ -31,94 +31,32 @@ dda_1000 <- read.delim2("data/figure4a/20221229_094126_SN17_OHPF_DDA_1000ng_LITD
 
 
 # prepare data -----------------------------------------------------------------
-directDIA_s <- directDIA%>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "directDIA",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-directDIA_errorbar <- directDIA_s %>% calculate_errorbar()
-directDIA_errorbar_cv <- directDIA_s %>% calculate_errorbar_cv()
+library(dplyr)
+library(purrr)
 
-dia_40_s <- dia_40 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dia40",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dia_40_errorbar <- dia_40_s %>% calculate_errorbar()
-dia_40_errorbarr_cv <- dia_40_s %>% calculate_errorbar_cv()
+# prepare data
+datasets <- list(directDIA, dia_40, dia_46, dia_1, dda_50, dda_100, dda_1000)
 
-dia_46_s <- dia_46 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dia16",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dia_46_errorbarr <- dia_46_s %>% calculate_errorbar()
-dia_46_errorbar_cv <- dia_46_s %>% calculate_errorbar_cv()
+processed_datasets <- datasets %>%
+  map_dfr(function(dataset) {
+    dataset %>%
+      filter_pep() %>%
+      compute_CV() %>%
+      mutate(input = str_remove(names(dataset), "_s$"),
+             label_x = "1 ng \n MS1 Enhanced - MS Normal") %>%
+      calculate_errorbar() %>%
+      calculate_errorbar_cv()
+  })
 
-dia_1_s <- dia_1 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dia",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dia_1_errorbar <- dia_1_s %>% calculate_errorbar()
-dia_1_errorbar_cv <- dia_1_s %>% calculate_errorbar_cv()
-
-dda_50_s <- dda_50 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dda50",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dda_50_errorbar <- dda_50_s %>% calculate_errorbar()
-dda_50_errorbar_cv <- dda_50_s %>% calculate_errorbar_cv()
-
-dda_100_s <- dda_100 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dda100",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dda_100_errorbar <- dda_100_s %>% calculate_errorbar()
-dda_100_errorbar_cv <- dda_100_s %>% calculate_errorbar_cv()
-
-dda_1000_s <- dda_1000 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dda1000",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dda_1000_errorbar <- dda_1000_s %>% calculate_errorbar()
-dda_1000_errorbar_cv <- dda_1000_s %>% calculate_errorbar_cv()
-
-# create df --------------------------------------------------------------------
-df_plot = data.frame()
-
-label <- c("directDIA",
-           "DIA-based 40 cells", "DIA-based 64 cells", "DIA-based 40 ng",
-           "DDA-based 50 ng", "DDA-based 100 ng", "DDA-based 1000 ng")
-
-
-sd <- c(directDIA_r$sd,
-        dia_40_errorbar$sd, dia_46_errorbar$sd, dia_1_errorbar$sd,
-        dda_50_errorbar$sd, dda_100_errorbar$sd, dda_1000_errorbar$sd)
-
-mean <- c(directDIA_errorbar$mean,
-          dia_40_errorbar$mean, dia_46_errorbarr$mean,   dia_1_errorbar$mean,
-          dda_50_errorbar$mean, dda_100_errorbar$mean, dda_1000_errorbar$mean)
-
-sd_cv <- c(directDIA_errorbar_cv$sd,
-           dia_40_errorbar_cv$sd, dia_46_errorbar_cv$sd,   dia_1_errorbar_cv$sd,
-           dda_50_errorbar_cv$sd, dda_100_errorbar_cv$sd, dda_1000_errorbar_cv$sd)
-
-mean_cv <- c(directDIA_errorbar_cv$mean,
-             dia_40_errorbar_cv$mean, dia_46_errorbar_cv$mean,  dia_1_errorbar_cv$mean,
-             dda_50_errorbar_cv$mean, dda_100_errorbar_cv$mean, dda_1000_errorbar_cv$mean)
-
-df_plot <- data.frame(
-  label = label,
-  sd = sd,
-  mean = mean,
-  sd_cv = sd_cv,
-  mean_cv = mean_cv
+# create df
+df_plot <- tibble(
+  label = c("directDIA", "DIA-based 40 cells", "DIA-based 64 cells", "DIA-based 40 ng",
+            "DDA-based 50 ng", "DDA-based 100 ng", "DDA-based 1000 ng"),
+  sd = processed_datasets %>% pull(sd),
+  mean = processed_datasets %>% pull(mean),
+  sd_cv = processed_datasets %>% pull(sd_cv),
+  mean_cv = processed_datasets %>% pull(mean_cv)
 )
-
 
 # plot -------------------------------------------------------------------------
 
@@ -148,8 +86,6 @@ figure_4a <- df_plot %>%
                 width = 0.2,
                 size = 1)
 
-
-
 # load data --------------------------------------------------------------------
 
 directDIA <- read.delim2("data/figure4b/20221229_095106_SN17_directDIA_LITDIA_scMS_10cells_Report.tsv")
@@ -161,94 +97,32 @@ dda_100 <- read.delim2("data/figure4b/20221229_095228_SN17_DDA_OHPF_100ng_LITDIA
 dda_1000 <- read.delim2("data/figure4b/20221229_095246_SN17_DDA_OHPF_1000ng_LITDIA_scMS_10cells_Report.tsv")
 
 # prepare data -----------------------------------------------------------------
-directDIA_s <- directDIA%>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "directDIA",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-directDIA_errorbar <- directDIA_s %>% calculate_errorbar()
-directDIA_errorbar_cv <- directDIA_s %>% calculate_errorbar_cv()
+library(dplyr)
+library(purrr)
 
-dia_40_s <- dia_40 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dia40",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dia_40_errorbar <- dia_40_s %>% calculate_errorbar()
-dia_40_errorbarr_cv <- dia_40_s %>% calculate_errorbar_cv()
+# prepare data
+datasets <- list(directDIA, dia_40, dia_46, dia_1, dda_50, dda_100, dda_1000)
 
-dia_46_s <- dia_46 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dia16",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dia_46_errorbarr <- dia_46_s %>% calculate_errorbar()
-dia_46_errorbar_cv <- dia_46_s %>% calculate_errorbar_cv()
+processed_datasets <- datasets %>%
+  map_dfr(function(dataset) {
+    dataset %>%
+      filter_pep() %>%
+      compute_CV() %>%
+      mutate(input = str_remove(names(dataset), "_s$"),
+             label_x = "1 ng \n MS1 Enhanced - MS Normal") %>%
+      calculate_errorbar() %>%
+      calculate_errorbar_cv()
+  })
 
-dia_1_s <- dia_1 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dia",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dia_1_errorbar <- dia_1_s %>% calculate_errorbar()
-dia_1_errorbar_cv <- dia_1_s %>% calculate_errorbar_cv()
-
-dda_50_s <- dda_50 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dda50",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dda_50_errorbar <- dda_50_s %>% calculate_errorbar()
-dda_50_errorbar_cv <- dda_50_s %>% calculate_errorbar_cv()
-
-dda_100_s <- dda_100 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dda100",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dda_100_errorbar <- dda_100_s %>% calculate_errorbar()
-dda_100_errorbar_cv <- dda_100_s %>% calculate_errorbar_cv()
-
-dda_1000_s <- dda_1000 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "dda1000",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-dda_1000_errorbar <- dda_1000_s %>% calculate_errorbar()
-dda_1000_errorbar_cv <- dda_1000_s %>% calculate_errorbar_cv()
-
-# create df --------------------------------------------------------------------
-df_plot = data.frame()
-
-label <- c("directDIA",
-           "DIA-based 40 cells", "DIA-based 64 cells", "DIA-based 40 ng",
-           "DDA-based 50 ng", "DDA-based 100 ng", "DDA-based 1000 ng")
-
-
-sd <- c(directDIA_r$sd,
-        dia_40_errorbar$sd, dia_46_errorbar$sd, dia_1_errorbar$sd,
-        dda_50_errorbar$sd, dda_100_errorbar$sd, dda_1000_errorbar$sd)
-
-mean <- c(directDIA_errorbar$mean,
-          dia_40_errorbar$mean, dia_46_errorbarr$mean,   dia_1_errorbar$mean,
-          dda_50_errorbar$mean, dda_100_errorbar$mean, dda_1000_errorbar$mean)
-
-sd_cv <- c(directDIA_errorbar_cv$sd,
-           dia_40_errorbar_cv$sd, dia_46_errorbar_cv$sd,   dia_1_errorbar_cv$sd,
-           dda_50_errorbar_cv$sd, dda_100_errorbar_cv$sd, dda_1000_errorbar_cv$sd)
-
-mean_cv <- c(directDIA_errorbar_cv$mean,
-             dia_40_errorbar_cv$mean, dia_46_errorbar_cv$mean,  dia_1_errorbar_cv$mean,
-             dda_50_errorbar_cv$mean, dda_100_errorbar_cv$mean, dda_1000_errorbar_cv$mean)
-
-df_plot <- data.frame(
-  label = label,
-  sd = sd,
-  mean = mean,
-  sd_cv = sd_cv,
-  mean_cv = mean_cv
+# create df
+df_plot <- tibble(
+  label = c("directDIA", "DIA-based 40 cells", "DIA-based 64 cells", "DIA-based 40 ng",
+            "DDA-based 50 ng", "DDA-based 100 ng", "DDA-based 1000 ng"),
+  sd = processed_datasets %>% pull(sd),
+  mean = processed_datasets %>% pull(mean),
+  sd_cv = processed_datasets %>% pull(sd_cv),
+  mean_cv = processed_datasets %>% pull(mean_cv)
 )
-
 
 # plot -------------------------------------------------------------------------
 

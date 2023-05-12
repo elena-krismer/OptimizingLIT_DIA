@@ -6,36 +6,31 @@
 # of high-confidence peptide detections with intensity coefficient of variances
 # below 20%.
 
-# load data --------------------------------------------------------------------
+# Define file paths
+file_paths <- c("data/SN17_directDIA_LITDIA_MS1_Enhanced_MS2_Normal_HeLa_01ng_Report.tsv",
+                "data/SN17_directDIA_LITDIA_MS1_Normal_MS2_Rapid_HeLa_10ng_MS1_Quant_Report.tsv",
+                "data/SN17_directDIA_LITDIA_MS1_Rapid_MS2_Rapid_HeLa_100ng_MS1_Quant_Report.tsv")
 
-ng1 <- read.delim2("data/SN17_directDIA_LITDIA_MS1_Enhanced_MS2_Normal_HeLa_01ng_Report.tsv")
-ng10 <- read.delim2("data/SN17_directDIA_LITDIA_MS1_Normal_MS2_Rapid_HeLa_10ng_MS1_Quant_Report.tsv")
-ng100 <- read.delim2("data/SN17_directDIA_LITDIA_MS1_Rapid_MS2_Rapid_HeLa_100ng_MS1_Quant_Report.tsv")
+# Define labels and input values for each file
+file_labels <- c("1 ng \n MS1 Enhanced - MS Normal",
+                 "10 ng \n MS1 Normal - MS Rapid",
+                 "100 ng \n MS1 Rapid - MS Rapid")
+input_values <- c("1 ng", "10 ng", "100 ng")
 
+# Read and process each file
+data_list <- lapply(file_paths, function(path) {
+  data <- read.delim2(path)
+  data <- data %>%
+    filter_pep() %>%
+    compute_CV()
+  input <- input_values[file_paths == path]
+  label_x <- file_labels[file_paths == path]
+  data %>% mutate(input = input, label_x = label_x)
+})
 
-# Filter Peptides - Compute CV -------------------------------------------------
-
-ng1 <- ng1 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "1 ng",
-         label_x = "1 ng \n MS1 Enhanced - MS Normal")
-
-ng10<- ng10 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "10 ng",
-         label_x =  "10 ng \n MS1 Normal - MS Rapid")
-
-ng100 <- ng100 %>%
-  filter_pep() %>%
-  compute_CV() %>%
-  mutate(input = "100 ng",
-         label_x = "100 ng \n MS1 Rapid - MS Rapid" )
-
-
-
-df <- rbind(ng1a, ng10a, ng100a) %>%
+# Combine data and compute summary statistics
+df <- do.call(rbind, data_list)
+df <- df %>%
   arrange(desc(CV)) %>%
   mutate(
     cv_label = case_when(
@@ -45,14 +40,10 @@ df <- rbind(ng1a, ng10a, ng100a) %>%
     )
   ) %>%
   dplyr::filter(!is.na(cv_label)) %>%
-  group_by(input, cv_label, CV, label_x)
-
-df[is.na(df)] <- 0
-
-df <- df %>%
+  group_by(input, cv_label, CV, label_x) %>%
   summarise(id_S1 = sum(S1),
-                       id_S2 = sum(S2),
-                       id_S3 = sum(S3)) %>%
+            id_S2 = sum(S2),
+            id_S3 = sum(S3)) %>%
   rowwise() %>%
   mutate(
     mean_n_peptides = mean(c(id_S1, id_S2, id_S3)),
@@ -61,9 +52,8 @@ df <- df %>%
   dplyr::group_by(input) %>%
   mutate(pos = cumsum(mean_n_peptides))
 
-
+# Get data for plotting figure 2
 df_plot <- get_plotting_data_fig2(df)
-
 
 
 # Plot -------------------------------------------------------------------------
