@@ -2,85 +2,56 @@
 # https://uclouvain-cbio.github.io/SCP.replication/articles/SCoPE2.html
 
 # correlation between 12 single cells and bulk data
-
+library(tidyverse)
 
 directDIA_bulk <- read.delim2("data/figure5/20221229_095106_SN17_directDIA_LITDIA_scMS_10cells_Report.tsv")
-dia_40_bulk <- read.delim2("data/figure5/20221229_095124_SN17_DIA_GPF_10cells_LITDIA_scMS_10cells_Report.tsv")
-dia_46_bulk <- read.delim2("data/figure5/20221229_095139_SN17_DIA_GPF_16cells_LITDIA_scMS_10cells_Report.tsv")
-dia_1_bulk <- read.delim2("data/figure5/20221229_095151_SN17_DIA_GPF_10ng_LITDIA_scMS_10cells_Report.tsv")
-dda_50_bulk <- read.delim2("data/figure5/20221229_095209_SN17_DDA_OHPF_50ng_LITDIA_scMS_10cells_Report.tsv")
-dda_100_bulk <- read.delim2("data/figure5/20221229_095228_SN17_DDA_OHPF_100ng_LITDIA_scMS_10cells_Report.tsv")
-dda_1000_bulk <- read.delim2("data/figure5/20221229_095246_SN17_DDA_OHPF_1000ng_LITDIA_scMS_10cells_Report.tsv")
+directDIA_single<- read.delim2("data/figure5/20221229_093524_SN17_directDIA_LITDIA_scMS_12runs_Report.tsv")
 
-directDIA_single <- read.delim2("data/figure5/20221229_093949_SN17_directDIA_LITDIA_scMS_3runs_Report.tsv")
-dia_40_single <- read.delim2("data/figure5/20221229_094002_SN17_GPF_DIA_10cells_LITDIA_scMS_1cell_Report.tsv")
-dia_46_single <- read.delim2("data/figure5/20221229_094017_SN17_GPF_DIA_16cells_LITDIA_scMS_1cell_Report.tsv")
-dia_1_single <- read.delim2("data/figure5/20221229_094032_SN17_GPF_DIA_10ng_LITDIA_scMS_1cell_Report.tsv")
-dda_50_single <- read.delim2("data/figure5/20221229_094048_SN17_OHPF_DDA_50ng_LITDIA_scMS_1cell_Report.tsv")
-dda_100_single <- read.delim2("data/figure5/20221229_094613_SN17_OHPF_DDA_100ng_LITDIA_scMS_1cell_Report.tsv")
-dda_1000_single <- read.delim2("data/figure5/20221229_094126_SN17_OHPF_DDA_1000ng_LITDIA_scMS_1cell_Report.tsv")
+directDIA_bulk["replicate"]  <-  "bulk"
 
-# calculate CVs of relative precursors
-# "F.PeakHeight"
+directDIA_bulk <- directDIA_bulk %>%
+  select(F.PeakHeight, PEP.StrippedSequence, replicate) #%>%
 
-# -- bulk --------------------------------------------------------------------
-bulk <- list(directDIA_bulk,dia_40_bulk, dia_46_bulk,
-  dia_1_bulk, dda_50_bulk, dda_100_bulk, dda_1000_bulk,
-  directDIA_single,dia_40_single, dia_46_single,
-  dia_1_single, dda_50_single, dda_100_single, dda_1000_single)
-
-method_label <- c("directDIA", "dia_40", "dia_46",
-                "dia_1", "dda_50", "dda_100", "dda_1000",
-                "directDIA", "dia_40", "dia_46",
-                "dia_1", "dda_50", "dda_100", "dda_1000" )
-
-amount <- c("bulk", "bulk", "bulk",
-          "bulk", "bulk", "bulk", "bulk",
-          "single", "single", "single",
-          "single", "single", "single", "single")
-
-label <- c("directDIA_bulk", "dia_40_bulk", "dia_46_bulk",
-  "dia_1_bulk", "dda_50_bulk", "dda_100_bulk", "dda_1000_bulk",
-  "directDIA_single", "dia_40_single", "dia_46_single",
-  "dia_1_single", "dda_50_single", "dda_100_single", "dda_1000_single"
-  )
-
-for(i in 1:length(bulk)){
-  bulk[[i]]["name"] <-  label[i]
-  bulk[[i]]["method"] <-  method_label[i]
-  bulk[[i]]["bulk_single"] <-  amount[i]
-  bulk[[i]] <- bulk[[i]] %>%
-    select(name, F.PeakHeight,
-           PEP.StrippedSequence,
-           method,
-           bulk_single
-           #PG.ProteinGroups
-           ) %>%
-    unite("pep_method", PEP.StrippedSequence:method )
-}
-
-df <- do.call(rbind,bulk)
-
-
-# -- single --------------------------------------------------------------------
-
-# median quantitative variability for every single cell
-
-
-df <- df %>%
-  select(!name) %>%
-  group_by(pep_method, bulk_single) %>% summarise_all(funs(median(., na.rm = TRUE))) %>%
-  pivot_wider(names_from=bulk_single, values_from = F.PeakHeight)
+directDIA_single <- directDIA_single %>%
+  mutate(replicate = case_when(
+    grepl("23$",  R.FileName) ~ "01",
+    grepl("21$",  R.FileName) ~ "02",
+    grepl("19$",  R.FileName) ~ "03",
+    grepl("18$",  R.FileName) ~ "04",
+    grepl("17$",  R.FileName) ~ "05",
+    grepl("14$",  R.FileName) ~ "06",
+    grepl("13$",  R.FileName) ~ "07",
+    grepl("12$",  R.FileName) ~ "08",
+    grepl("07$",  R.FileName) ~ "09",
+    grepl("06$",  R.FileName) ~ "10",
+    grepl("05$",  R.FileName) ~ "11",
+    grepl("02$",  R.FileName) ~ "12",
+    TRUE ~ NA
+  ))  %>%
+  dplyr::select(c(F.PeakHeight, PEP.StrippedSequence, replicate))
 
 
 # -- plot ----------------------------------------------------------------------
 library(ggpointdensity)
 library(ggpubr)
 
-figure_5e <- df %>%
+directDIA_bulk <- directDIA_bulk %>%
+  dplyr::group_by(PEP.StrippedSequence) %>%
+  dplyr::summarise(across(c(F.PeakHeight), median))
+
+df5e <- directDIA_single %>%
+  dplyr::group_by(PEP.StrippedSequence) %>%
+  dplyr::summarise(across(c(F.PeakHeight), median)) %>%
+  mutate(single = F.PeakHeight) %>%
+  select(!F.PeakHeight) %>%
+  merge(directDIA_bulk %>% dplyr::select(PEP.StrippedSequence, F.PeakHeight)) %>%
+  mutate(bulk = F.PeakHeight)
+
+
+figure_5e <- df5e%>%
   drop_na() %>%
   ggplot(aes(x = log2(bulk), y = log2(single)))+
-  geom_pointdensity(size = 1.5)+
+  geom_pointdensity(size = 2.5)+
   scale_color_viridis_c()+
   stat_cor(method = "pearson",
            aes(label = ..r.label..),
@@ -88,8 +59,8 @@ figure_5e <- df %>%
            size = 5,
            label.x.npc = 0,
            label.y.npc = 0.9) +
-  labs(x = "bulk",
-       y = "single")+
+  xlab(bquote("Bulk log[2]"))+
+  ylab(bquote("Single cell log[2]"))+
   theme_bw() +
   theme(legend.position = "none",
         axis.title = element_text(size = 14),
@@ -103,4 +74,34 @@ figure_5e <- df %>%
                                   face = "bold"
         )
   )
+
+
+# -supplement ------------------------------------------------------------------
+# correlation of 12 single cells
+
+library(ggpointdensity)
+library(ggpubr)
+library(GGally)
+
+df_supplement <- directDIA_single %>%
+  dplyr::group_by(PEP.StrippedSequence, replicate) %>%
+  dplyr::summarise(across(c(F.PeakHeight), median)) %>%
+  ungroup() %>%
+  pivot_wider(names_from=replicate, values_from = F.PeakHeight)
+
+
+my_fn_ggpointdensity <- function(data, mapping, N=100, ...){
+
+  p <- ggplot(data, mapping) +
+    geom_pointdensity(size = 1.5)+
+    scale_color_viridis_c()
+  p
+}
+
+figure_supplement <- df_supplement %>%
+  dplyr::select(!PEP.StrippedSequence) %>%
+  log2() %>%
+  ggpairs(lower=list(continuous=my_fn_ggpointdensity )) +
+  theme_bw()
+
 
